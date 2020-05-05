@@ -27,7 +27,7 @@ ev_data <- read_csv('data/raw/ev_registrations.csv') %>%
   left_join(provinces_latlong, by = c('geo' = 'province'))
 
 fuel_types <- ev_data$fuel_type %>% unique()
-ev_fuel_types <- c('Battery electric', 'Hybrid electric', 'Plug-in hybrid electric') 
+ev_fuel_types <- c('Battery electric', 'Plug-in hybrid electric') 
 
 ev_data <- ev_data %>% pivot_wider(names_from = fuel_type, values_from = amount)
 
@@ -134,7 +134,7 @@ server <- function(input, output) {
           lat = ~ latitude, 
           lng = ~ longitude,
           weight = 1, 
-          radius = ~(amount)^(1/2.9),
+          radius = ~(amount)^(1/3),
           fillOpacity = 0.5, 
           fillColor = ~ev_pal(amount),
           group = fuel_type,

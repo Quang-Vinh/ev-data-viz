@@ -7,9 +7,6 @@
 
 library(leaflet)
 library(shiny)
-library(shinydashboard)
-library(shinythemes)
-library(shinyWidgets)
 library(tidyverse)
 
 
@@ -37,7 +34,7 @@ max_year <- ev_data$year %>% max()
 
 # Plotting parameters for map
 bins <- c(0, 100, 1000, 10000, 100000, 500000, Inf)
-max_value = ev_data %>% select(fuel_types) %>% max()
+max_value = ev_data %>% select(all_of(fuel_types)) %>% max()
 ev_pal <- colorBin('Blues', domain = c(0, max_value), bins = bins)
 
 
@@ -95,7 +92,7 @@ server <- function(input, output) {
   })
   
   reactive_total_new_zev <- reactive({
-    reactive_ev_data() %>% select(ev_fuel_types) %>% sum()
+    reactive_ev_data() %>% select(all_of(ev_fuel_types)) %>% sum()
   })
   
   reactive_total_new_gv <- reactive({

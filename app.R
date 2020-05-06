@@ -42,13 +42,13 @@ ev_pal <- colorBin('Blues', domain = c(0, max_value), bins = bins)
 basemap <- leaflet() %>% 
   addTiles() %>% 
   addLayersControl(
-    position = 'bottomright',
+    position = 'topright',
     overlayGroups = fuel_types,
     options = layersControlOptions(collapsed = FALSE)
   ) %>% 
   hideGroup(fuel_types[-1]) %>% 
-  fitBounds(-140, 74, -44, 42) %>% 
-  addLegend('bottomright', pal = ev_pal, values = c(0, max_value),
+  setView(-95, 55, zoom = 5) %>% 
+  addLegend('topright', pal = ev_pal, values = c(0, max_value),
             title = '<small>Amount</small>')
 
 

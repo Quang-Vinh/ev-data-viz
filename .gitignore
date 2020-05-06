@@ -1,6 +1,9 @@
 # Sandbox
 temp.R
 
+# shinyapps.io
+rsconnect/
+
 # History files
 .Rhistory
 .Rapp.history

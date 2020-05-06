@@ -21,12 +21,14 @@ ev_data <- read_csv('data/raw/ev_registrations.csv') %>%
   select(year = ref_date, geo, fuel_type, amount = value) %>%
   replace_na(list(amount = 0)) %>% 
   mutate(geo = recode(geo, `British Columbia and the Territories` = 'British Columbia')) %>% # Fix later
-  left_join(provinces_latlong, by = c('geo' = 'province'))
+  left_join(provinces_latlong, by = c('geo' = 'province')) %>% 
+  group_by(geo, fuel_type) %>% 
+  mutate(cumsum = cumsum(amount))
 
 fuel_types <- ev_data$fuel_type %>% unique()
 ev_fuel_types <- c('Battery electric', 'Plug-in hybrid electric') 
 
-ev_data <- ev_data %>% pivot_wider(names_from = fuel_type, values_from = amount)
+# ev_data <- ev_data %>% pivot_wider(names_from = fuel_type, values_from = amount)
 
 min_year <- ev_data$year %>% min()
 max_year <- ev_data$year %>% max()
@@ -34,7 +36,7 @@ max_year <- ev_data$year %>% max()
 
 # Plotting parameters for map
 bins <- c(0, 100, 10000, 100000, 500000, Inf)
-max_value = ev_data %>% select(all_of(fuel_types)) %>% max()
+max_value = ev_data$amount %>% max()
 ev_pal <- colorBin('Blues', domain = c(0, max_value), bins = bins)
 
 
@@ -49,7 +51,7 @@ basemap <- leaflet() %>%
   hideGroup(fuel_types[-1]) %>% 
   setView(-95, 55, zoom = 5) %>% 
   addLegend('topright', pal = ev_pal, values = c(0, max_value),
-            title = '<small>Amount</small>')
+            title = '<small>Amount of vehicles</small>')
 
 
 ui <- bootstrapPage(
@@ -89,11 +91,11 @@ server <- function(input, output) {
   })
   
   reactive_total_new_vehicles <- reactive({
-    reactive_ev_data() %>% pull('All fuel types') %>% sum()
+    reactive_ev_data() %>% filter(fuel_type == 'All fuel types') %>% pull(amount) %>% sum()
   })
   
   reactive_total_new_zev <- reactive({
-    reactive_ev_data() %>% select(all_of(ev_fuel_types)) %>% sum()
+    reactive_ev_data() %>% filter(fuel_type %in% ev_fuel_types) %>% pull(amount) %>% sum()
   })
   
   reactive_total_new_gv <- reactive({
@@ -121,26 +123,28 @@ server <- function(input, output) {
   observeEvent(input$plot_date, {
     leafletProxy('mymap') %>% 
     clearMarkers()
-      
-    ev_data_filtered <- reactive_ev_data()
+    
     # Add circle markers for each group to the basemap
-    for (fuel_type in fuel_types) {
-      amount <- ev_data_filtered %>% pull(fuel_type)
+    for (fuel_typ in fuel_types) {
+      ev_data_filtered <- reactive_ev_data() %>% filter(fuel_type == fuel_typ)
+      amount <- ev_data_filtered$amount
+      
       leafletProxy('mymap') %>% 
         addCircleMarkers(
-          data = ev_data, 
+          data = ev_data_filtered, 
           lat = ~ latitude, 
           lng = ~ longitude,
           weight = 1, 
           radius = ~8*(amount)^(1/5),
-          fillOpacity = 0.2, 
+          fillOpacity = 0.6, 
           fillColor = ~ev_pal(amount),
-          group = fuel_type,
+          group = fuel_typ,
           label = sprintf("<strong>%s</strong><br/>Amount: %g", ev_data_filtered$geo, amount) %>% lapply(htmltools::HTML),
           labelOptions = labelOptions(
             style = list("font-weight" = "normal", padding = "3px 8px"),
             textsize = "15px", direction = "auto"))
     }
+    
   })
   
 }

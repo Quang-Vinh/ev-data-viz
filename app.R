@@ -33,7 +33,7 @@ max_year <- ev_data$year %>% max()
 
 
 # Plotting parameters for map
-bins <- c(0, 100, 1000, 10000, 100000, 500000, Inf)
+bins <- c(0, 100, 10000, 100000, 500000, Inf)
 max_value = ev_data %>% select(all_of(fuel_types)) %>% max()
 ev_pal <- colorBin('Blues', domain = c(0, max_value), bins = bins)
 
@@ -73,6 +73,7 @@ ui <- bootstrapPage(
         min = min_year,
         max = max_year,
         step = 1,
+        sep = '',
         animate = animationOptions(interval = 2000, loop = FALSE)
       )
       
@@ -131,8 +132,8 @@ server <- function(input, output) {
           lat = ~ latitude, 
           lng = ~ longitude,
           weight = 1, 
-          radius = ~(amount)^(1/3),
-          fillOpacity = 0.5, 
+          radius = ~8*(amount)^(1/5),
+          fillOpacity = 0.2, 
           fillColor = ~ev_pal(amount),
           group = fuel_type,
           label = sprintf("<strong>%s</strong><br/>Amount: %g", ev_data_filtered$geo, amount) %>% lapply(htmltools::HTML),

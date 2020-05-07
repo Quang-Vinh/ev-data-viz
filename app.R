@@ -7,7 +7,9 @@
 
 library(leaflet)
 library(plotly)
+library(RColorBrewer)
 library(shiny)
+library(shinyjs)
 library(shinythemes)
 library(tidyverse)
 
@@ -56,6 +58,8 @@ basemap <- leaflet() %>%
 
 
 ui <- bootstrapPage(
+  shinyjs::useShinyjs(),
+  
   navbarPage(theme = shinytheme('flatly'), collapsible = TRUE, 'VRF Data Visualisation', id='nav',
             
     tabPanel('Map View',
@@ -91,7 +95,8 @@ ui <- bootstrapPage(
             choices = c('Province', 'Fuel type')),
           selectInput(
             'province_select', 'Province',
-            choices = provinces
+            choices = provinces,
+            selected = 'Ontario'
           ),
           selectInput(
             'fuel_type_select', 'Fuel type',
@@ -101,7 +106,7 @@ ui <- bootstrapPage(
         ),
         mainPanel(
           plotlyOutput('time_series_plot'),
-          plotlyOutput('bar_graph_plot')
+          plotlyOutput('bar_chart_plot')
         )
       ) # sidebar layout
     ) # tab panel
@@ -171,12 +176,38 @@ server <- function(input, output) {
     }
   })
   
+  
   ### Growth tab
+  
+  # Set color ramp 
+  my_colors <- colorRampPalette(brewer.pal(8, 'Set2'))(15)
+  
+  reactive_ev_data_fuel_type <- reactive({
+    ev_data %>% filter(fuel_type == input$fuel_type_select)
+  })
+  
+  reactive_ev_data_province <- reactive({
+    ev_data %>% filter(geo == input$province_select)
+  })
+  
+  # Disable/Enable select options based on Group select and set color ramp
+  observeEvent(input$group_select, {
+    if (input$group_select == 'Province') {
+      shinyjs::disable('province_select')
+      shinyjs::enable('fuel_type_select')
+    } 
+    else if (input$group_select == 'Fuel type') {
+      shinyjs::enable('province_select')
+      shinyjs::disable('fuel_type_select')
+    }
+  })
+  
+  # TODO: Switch to plotly proxy to update plots 
   output$time_series_plot <- renderPlotly({
     if (input$group_select == 'Province') {
-      ev_data_plot <- ev_data %>% filter(fuel_type == input$fuel_type_select)
+      ev_data_plot <- reactive_ev_data_fuel_type()
       ev_data_plot %>% 
-        plot_ly(x = ~year, y = ~cumsum, color = ~geo, type = 'scatter', mode = 'lines+markers') %>% 
+        plot_ly(x = ~year, y = ~cumsum, color = ~geo, colors = my_colors, type = 'scatter', mode = 'lines+markers') %>% 
         layout(
           xaxis = list(title = 'Year'),
           yaxis = list(title = 'Number of vehicles', range=c(0, 1.2 * max(ev_data_plot$cumsum))),
@@ -184,7 +215,7 @@ server <- function(input, output) {
         )
     } 
     else if (input$group_select == 'Fuel type') {
-      ev_data_plot <- ev_data %>% filter(geo == input$province_select)
+      ev_data_plot <- reactive_ev_data_province()
       ev_data_plot %>% 
         plot_ly(x = ~year, y = ~cumsum, color = ~fuel_type, type = 'scatter', mode = 'lines+markers') %>% 
         layout(
@@ -194,6 +225,28 @@ server <- function(input, output) {
         )
     }
   })
+
+  output$bar_chart_plot <- renderPlotly({
+    if (input$group_select == 'Province') {
+      ev_data_plot <- reactive_ev_data_fuel_type()
+      ev_data_plot %>% 
+        plot_ly(x = ~year, y = ~amount, color = ~geo, colors = my_colors, type = 'bar') %>% 
+        layout(
+          yaxis = list(title = 'Number of new vehicles'),
+          title = paste0('Number of new ', input$fuel_type_select, ' vehicles'),
+          barmode = 'stack')
+    }
+    else if (input$group_select == 'Fuel type') {
+      ev_data_plot <- reactive_ev_data_province()
+      ev_data_plot %>% 
+        plot_ly(x = ~year, y = ~amount, color = ~fuel_type, type = 'bar') %>% 
+        layout(
+          yaxis = list(title = 'Number of new vehicles'),
+          title = paste0('Number of new vehicles per fuel type in ', input$province_select),
+          barmode = 'stack')
+    }
+  })
+  
 }
 
 

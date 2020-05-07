@@ -106,7 +106,8 @@ ui <- bootstrapPage(
         ),
         mainPanel(
           plotlyOutput('time_series_plot'),
-          plotlyOutput('bar_chart_plot')
+          plotlyOutput('bar_chart_plot'),
+          plotlyOutput('sunburst_plot')
         )
       ) # sidebar layout
     ) # tab panel
@@ -237,7 +238,7 @@ server <- function(input, output) {
           barmode = 'stack')
     }
     else if (input$group_select == 'Fuel type') {
-      ev_data_plot <- reactive_ev_data_province()
+      ev_data_plot <- reactive_ev_data_province() %>% filter(fuel_type != 'All fuel types')
       ev_data_plot %>% 
         plot_ly(x = ~year, y = ~amount, color = ~fuel_type, type = 'bar') %>% 
         layout(
@@ -247,6 +248,22 @@ server <- function(input, output) {
     }
   })
   
+
+  # output$sunburst_plot <- renderPlotly({
+  #   ev_data_plot <- ev_data %>%
+  #     filter(year == 2018) %>% 
+  #     filter(fuel_type != 'All fuel types', fuel_type != 'Gasoline') %>% 
+  #     arrange(geo)
+  #   labels <- c('Canada', provinces, ev_data_plot$fuel_type)
+  #   parents <- c('', rep('Canada', length(provinces)), ev_data_plot$geo)
+  #   values <- c(
+  #     ev_data_plot %>% pull(amount) %>% sum(),
+  #     ev_data_plot %>% group_by(geo) %>% summarise(total=sum(amount)) %>% pull(total),
+  #     ev_data_plot %>% pull(amount)
+  #   )
+  #   plot_ly(labels = labels, parents = parents, values = values, type = 'sunburst')
+  # })  
+
 }
 
 

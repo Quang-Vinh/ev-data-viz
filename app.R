@@ -6,7 +6,9 @@
 
 
 library(leaflet)
+library(plotly)
 library(shiny)
+library(shinythemes)
 library(tidyverse)
 
 
@@ -27,8 +29,7 @@ ev_data <- read_csv('data/raw/ev_registrations.csv') %>%
 
 fuel_types <- ev_data$fuel_type %>% unique()
 ev_fuel_types <- c('Battery electric', 'Plug-in hybrid electric') 
-
-# ev_data <- ev_data %>% pivot_wider(names_from = fuel_type, values_from = amount)
+provinces <- ev_data$geo %>% unique() %>% sort()
 
 min_year <- ev_data$year %>% min()
 max_year <- ev_data$year %>% max()
@@ -55,32 +56,56 @@ basemap <- leaflet() %>%
 
 
 ui <- bootstrapPage(
-  div(class='outer',
-    tags$head(includeCSS('styles.css')),
+  navbarPage(theme = shinytheme('flatly'), collapsible = TRUE, 'VRF Data Visualisation', id='nav',
+            
+    tabPanel('Map View',
+      div(class='outer', tags$head(includeCSS('styles.css')),
+        leafletOutput('mymap', width = '100%', height = '100%'),
+        absolutePanel(
+          id = 'controls', class = 'panel panel-default', top = 80, left = 20, width = 250, fixed = TRUE,
+          draggable = TRUE, height = 'auto',
+          
+          h3(textOutput('reactive_total_new_vehicles'), align = 'right'),
+          span(h4(textOutput('reactive_total_new_gv'), align = 'right'), style="color:#cc4c02"),
+          span(h4(textOutput('reactive_total_new_zev'), align = 'right'), style="color:#006d2c"),
+          
+          sliderInput(
+            'plot_date',
+            label = 'Year',
+            value = max_year,
+            min = min_year,
+            max = max_year,
+            step = 1,
+            sep = '',
+            animate = animationOptions(interval = 2000, loop = FALSE)
+          )
+        ) # absolute Panel
+      ) # div outer
+    ), # Tab panel
     
-    leafletOutput('mymap', width='100%', height='100%'),
-    
-    absolutePanel(
-      id = 'controls', class = 'panel panel-default', top = 80, left = 20, width = 250, fixed = TRUE,
-      draggable = TRUE, height = 'auto',
-      
-      h3(textOutput('reactive_total_new_vehicles'), align = 'right'),
-      span(h4(textOutput('reactive_total_new_gv'), align = 'right'), style="color:#cc4c02"),
-      span(h4(textOutput('reactive_total_new_zev'), align = 'right'), style="color:#006d2c"),
-      
-      sliderInput(
-        'plot_date',
-        label = 'Year',
-        value = max_year,
-        min = min_year,
-        max = max_year,
-        step = 1,
-        sep = '',
-        animate = animationOptions(interval = 2000, loop = FALSE)
-      )
-      
-    )
-  )
+    tabPanel('Growth view',
+      sidebarLayout(
+        sidebarPanel(
+          selectInput(
+            'group_select', 'Group by',
+            choices = c('Province', 'Fuel type')),
+          selectInput(
+            'province_select', 'Province',
+            choices = provinces
+          ),
+          selectInput(
+            'fuel_type_select', 'Fuel type',
+            choices = fuel_types
+          ),
+          width = 2
+        ),
+        mainPanel(
+          plotlyOutput('time_series_plot'),
+          plotlyOutput('bar_graph_plot')
+        )
+      ) # sidebar layout
+    ) # tab panel
+  ) # navbar page
 )
 
 
@@ -118,7 +143,7 @@ server <- function(input, output) {
   
   output$mymap <- renderLeaflet({basemap})
   
-  
+  ### Map view tab
   # Update map circle markers when date changes
   observeEvent(input$plot_date, {
     leafletProxy('mymap') %>% 
@@ -144,9 +169,31 @@ server <- function(input, output) {
             style = list("font-weight" = "normal", padding = "3px 8px"),
             textsize = "15px", direction = "auto"))
     }
-    
   })
   
+  ### Growth tab
+  output$time_series_plot <- renderPlotly({
+    if (input$group_select == 'Province') {
+      ev_data_plot <- ev_data %>% filter(fuel_type == input$fuel_type_select)
+      ev_data_plot %>% 
+        plot_ly(x = ~year, y = ~cumsum, color = ~geo, type = 'scatter', mode = 'lines+markers') %>% 
+        layout(
+          xaxis = list(title = 'Year'),
+          yaxis = list(title = 'Number of vehicles', range=c(0, 1.2 * max(ev_data_plot$cumsum))),
+          title = paste0('Total number of ', input$fuel_type_select, ' vehicles over time')
+        )
+    } 
+    else if (input$group_select == 'Fuel type') {
+      ev_data_plot <- ev_data %>% filter(geo == input$province_select)
+      ev_data_plot %>% 
+        plot_ly(x = ~year, y = ~cumsum, color = ~fuel_type, type = 'scatter', mode = 'lines+markers') %>% 
+        layout(
+          xaxis = list(title = 'Year'),
+          yaxis = list(title = 'Number of vehicles', range=c(0, 1.2 * max(ev_data_plot$cumsum))),
+          title = paste0('Total number of vehicles in ', input$province_select,' over time')
+        )
+    }
+  })
 }
 
 

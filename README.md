@@ -9,6 +9,7 @@ A simple data visualization application to help understand electric vehicle data
 ## To do:
 
 - [x] Create a ui.R and server.R
+- [ ] Clean the main map
 - [ ] Build a pipeline that streams datasets directly from STC by automating the monthly updates of the nmvr and nmvs tables
 - [ ] Add and visualize table 20-10-0001-01
 - [ ] Add a translation EN/FR button

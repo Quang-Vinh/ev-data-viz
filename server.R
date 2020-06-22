@@ -36,6 +36,7 @@ get_nmvr_data <- function() {
 
 nmvr_data <- get_nmvr_data()
 
+
 # Extract some properties
 fuel_types <- nmvr_data$fuel_type %>% unique()
 ev_fuel_types <- c('Battery electric', 'Plug-in hybrid electric') 
@@ -67,6 +68,13 @@ basemap <- leaflet() %>%
 
 
 server <- function(input, output, session) {
+  
+  # Update nmvr_data every day. Though data is actually changed monthly
+  observe({
+    invalidateLater(8.64e7, session)
+    nmvr_data <- get_nmvr_data()
+  })
+  
   
   reactive_nmvr_data <- reactive({
     nmvr_data %>% filter(year == input$plot_date)

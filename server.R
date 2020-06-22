@@ -6,22 +6,37 @@ library(shinyjs)
 library(shinythemes)
 library(tidyverse)
 
+# Get updated data with STC API
+get_nmvr_data <- function() {
+  
+  # Province latitude and longitude data
+  provinces_latlong <- read_csv('data/raw/provinces_latlong.csv') %>% 
+    janitor::clean_names()
+  
+  # Download nmvs data using STC API
+  file_path <- './data/raw/nmvs_data.zip'
+  url <- 'https://www150.statcan.gc.ca/n1/tbl/csv/20100021-eng.zip'
+  
+  download.file(url, file_path)
+  nmvr_file <- unz(file_path, '20100021.csv')
+  
+  data <- read_csv(nmvr_file) %>% 
+    janitor::clean_names() %>% 
+    filter(str_detect(vehicle_type, '^Total')) %>% 
+    filter(geo != 'Canada') %>% 
+    select(year = ref_date, geo, fuel_type, amount = value) %>%
+    replace_na(list(amount = 0)) %>% 
+    mutate(geo = recode(geo, `British Columbia and the Territories` = 'British Columbia')) %>% # Fix later
+    left_join(provinces_latlong, by = c('geo' = 'province')) %>% 
+    group_by(geo, fuel_type) %>% 
+    mutate(cumsum = cumsum(amount))
+  
+  return (data)
+}
 
-# Load data and preprocess
-provinces_latlong <- read_csv('data/raw/provinces_latlong.csv') %>% 
-  janitor::clean_names()
+ev_data <- get_nmvr_data()
 
-ev_data <- read_csv('data/raw/ev_registrations.csv') %>% 
-  janitor::clean_names() %>% 
-  filter(str_detect(vehicle_type, '^Total')) %>% 
-  filter(geo != 'Canada') %>% 
-  select(year = ref_date, geo, fuel_type, amount = value) %>%
-  replace_na(list(amount = 0)) %>% 
-  mutate(geo = recode(geo, `British Columbia and the Territories` = 'British Columbia')) %>% # Fix later
-  left_join(provinces_latlong, by = c('geo' = 'province')) %>% 
-  group_by(geo, fuel_type) %>% 
-  mutate(cumsum = cumsum(amount))
-
+# Extract some properties
 fuel_types <- ev_data$fuel_type %>% unique()
 ev_fuel_types <- c('Battery electric', 'Plug-in hybrid electric') 
 provinces <- ev_data$geo %>% unique() %>% sort()
@@ -51,11 +66,15 @@ basemap <- leaflet() %>%
 
 
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   reactive_ev_data <- reactive({
     ev_data %>% filter(year == input$plot_date)
   })
+  
+  
+  
+  # Map View ----------------------------------------------------------------
   
   reactive_total_new_vehicles <- reactive({
     reactive_ev_data() %>% filter(fuel_type == 'All fuel types') %>% pull(amount) %>% sum()
@@ -82,10 +101,37 @@ server <- function(input, output) {
     paste0(prettyNum(reactive_total_new_zev(), big.mark=','), ' new electric vehicles')
   })
   
-  
   output$mymap <- renderLeaflet({basemap})
   
-  ### Map view tab
+  output$slider_input_plot_date <- renderUI({
+    sliderInput(
+      'plot_date',
+      label = 'Year',
+      value = max_year,
+      min = min_year,
+      max = max_year,
+      step = 1,
+      sep = '',
+      animate = animationOptions(interval = 2000, loop = FALSE)
+    )    
+  })
+  
+  output$select_input_province <- renderUI({
+    selectInput(
+      'province_select', 'Province',
+      choices = provinces,
+      selected = 'Ontario'
+    )
+  })
+  
+  output$select_input_fuel_type <- renderUI({
+    selectInput(
+      'fuel_type_select', 'Fuel type',
+      choices = fuel_types
+    )
+  })
+
+  
   # Update map circle markers when date changes
   observeEvent(input$plot_date, {
     leafletProxy('mymap') %>% 
@@ -114,7 +160,10 @@ server <- function(input, output) {
   })
   
   
-  ### Growth tab
+  
+  
+  # Growth Tab --------------------------------------------------------------
+  
   
   # Set color ramp 
   my_colors <- colorRampPalette(brewer.pal(8, 'Set2'))(15)

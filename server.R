@@ -34,20 +34,20 @@ get_nmvr_data <- function() {
   return (data)
 }
 
-ev_data <- get_nmvr_data()
+nmvr_data <- get_nmvr_data()
 
 # Extract some properties
-fuel_types <- ev_data$fuel_type %>% unique()
+fuel_types <- nmvr_data$fuel_type %>% unique()
 ev_fuel_types <- c('Battery electric', 'Plug-in hybrid electric') 
-provinces <- ev_data$geo %>% unique() %>% sort()
+provinces <- nmvr_data$geo %>% unique() %>% sort()
 
-min_year <- ev_data$year %>% min()
-max_year <- ev_data$year %>% max()
+min_year <- nmvr_data$year %>% min()
+max_year <- nmvr_data$year %>% max()
 
 
 # Plotting parameters for map
 bins <- c(0, 100, 10000, 100000, 500000, Inf)
-max_value = ev_data$amount %>% max()
+max_value = nmvr_data$amount %>% max()
 ev_pal <- colorBin('Blues', domain = c(0, max_value), bins = bins)
 
 
@@ -68,8 +68,8 @@ basemap <- leaflet() %>%
 
 server <- function(input, output, session) {
   
-  reactive_ev_data <- reactive({
-    ev_data %>% filter(year == input$plot_date)
+  reactive_nmvr_data <- reactive({
+    nmvr_data %>% filter(year == input$plot_date)
   })
   
   
@@ -77,11 +77,11 @@ server <- function(input, output, session) {
   # Map View ----------------------------------------------------------------
   
   reactive_total_new_vehicles <- reactive({
-    reactive_ev_data() %>% filter(fuel_type == 'All fuel types') %>% pull(amount) %>% sum()
+    reactive_nmvr_data() %>% filter(fuel_type == 'All fuel types') %>% pull(amount) %>% sum()
   })
   
   reactive_total_new_zev <- reactive({
-    reactive_ev_data() %>% filter(fuel_type %in% ev_fuel_types) %>% pull(amount) %>% sum()
+    reactive_nmvr_data() %>% filter(fuel_type %in% ev_fuel_types) %>% pull(amount) %>% sum()
   })
   
   reactive_total_new_gv <- reactive({
@@ -139,12 +139,12 @@ server <- function(input, output, session) {
     
     # Add circle markers for each group to the basemap
     for (fuel_typ in fuel_types) {
-      ev_data_filtered <- reactive_ev_data() %>% filter(fuel_type == fuel_typ)
-      amount <- ev_data_filtered$amount
+      nmvr_data_filtered <- reactive_nmvr_data() %>% filter(fuel_type == fuel_typ)
+      amount <- nmvr_data_filtered$amount
       
       leafletProxy('mymap') %>% 
         addCircleMarkers(
-          data = ev_data_filtered, 
+          data = nmvr_data_filtered, 
           lat = ~ latitude, 
           lng = ~ longitude,
           weight = 1, 
@@ -152,7 +152,7 @@ server <- function(input, output, session) {
           fillOpacity = 0.6, 
           fillColor = ~ev_pal(amount),
           group = fuel_typ,
-          label = sprintf("<strong>%s</strong><br/>Amount: %g", ev_data_filtered$geo, amount) %>% lapply(htmltools::HTML),
+          label = sprintf("<strong>%s</strong><br/>Amount: %g", nmvr_data_filtered$geo, amount) %>% lapply(htmltools::HTML),
           labelOptions = labelOptions(
             style = list("font-weight" = "normal", padding = "3px 8px"),
             textsize = "15px", direction = "auto"))
@@ -168,12 +168,12 @@ server <- function(input, output, session) {
   # Set color ramp 
   my_colors <- colorRampPalette(brewer.pal(8, 'Set2'))(15)
   
-  reactive_ev_data_fuel_type <- reactive({
-    ev_data %>% filter(fuel_type == input$fuel_type_select)
+  reactive_nmvr_data_fuel_type <- reactive({
+    nmvr_data %>% filter(fuel_type == input$fuel_type_select)
   })
   
-  reactive_ev_data_province <- reactive({
-    ev_data %>% filter(geo == input$province_select)
+  reactive_nmvr_data_province <- reactive({
+    nmvr_data %>% filter(geo == input$province_select)
   })
   
   # Disable/Enable select options based on Group select and set color ramp
@@ -191,22 +191,22 @@ server <- function(input, output, session) {
   # TODO: Switch to plotly proxy to update plots 
   output$time_series_plot <- renderPlotly({
     if (input$group_select == 'Province') {
-      ev_data_plot <- reactive_ev_data_fuel_type()
-      ev_data_plot %>% 
+      nmvr_data_plot <- reactive_nmvr_data_fuel_type()
+      nmvr_data_plot %>% 
         plot_ly(x = ~year, y = ~cumsum, color = ~geo, colors = my_colors, type = 'scatter', mode = 'lines+markers') %>% 
         layout(
           xaxis = list(title = 'Year'),
-          yaxis = list(title = 'Number of vehicles', range=c(0, 1.2 * max(ev_data_plot$cumsum))),
+          yaxis = list(title = 'Number of vehicles', range=c(0, 1.2 * max(nmvr_data_plot$cumsum))),
           title = paste0('Total number of ', input$fuel_type_select, ' vehicles over time')
         )
     } 
     else if (input$group_select == 'Fuel type') {
-      ev_data_plot <- reactive_ev_data_province()
-      ev_data_plot %>% 
+      nmvr_data_plot <- reactive_nmvr_data_province()
+      nmvr_data_plot %>% 
         plot_ly(x = ~year, y = ~cumsum, color = ~fuel_type, type = 'scatter', mode = 'lines+markers') %>% 
         layout(
           xaxis = list(title = 'Year'),
-          yaxis = list(title = 'Number of vehicles', range=c(0, 1.2 * max(ev_data_plot$cumsum))),
+          yaxis = list(title = 'Number of vehicles', range=c(0, 1.2 * max(nmvr_data_plot$cumsum))),
           title = paste0('Total number of vehicles in ', input$province_select,' over time')
         )
     }
@@ -214,8 +214,8 @@ server <- function(input, output, session) {
   
   output$bar_chart_plot <- renderPlotly({
     if (input$group_select == 'Province') {
-      ev_data_plot <- reactive_ev_data_fuel_type()
-      ev_data_plot %>% 
+      nmvr_data_plot <- reactive_nmvr_data_fuel_type()
+      nmvr_data_plot %>% 
         plot_ly(x = ~year, y = ~amount, color = ~geo, colors = my_colors, type = 'bar') %>% 
         layout(
           yaxis = list(title = 'Number of new vehicles'),
@@ -223,8 +223,8 @@ server <- function(input, output, session) {
           barmode = 'stack')
     }
     else if (input$group_select == 'Fuel type') {
-      ev_data_plot <- reactive_ev_data_province() %>% filter(fuel_type != 'All fuel types')
-      ev_data_plot %>% 
+      nmvr_data_plot <- reactive_nmvr_data_province() %>% filter(fuel_type != 'All fuel types')
+      nmvr_data_plot %>% 
         plot_ly(x = ~year, y = ~amount, color = ~fuel_type, type = 'bar') %>% 
         layout(
           yaxis = list(title = 'Number of new vehicles'),
@@ -235,16 +235,16 @@ server <- function(input, output, session) {
   
   
   # output$sunburst_plot <- renderPlotly({
-  #   ev_data_plot <- ev_data %>%
+  #   nmvr_data_plot <- nmvr_data %>%
   #     filter(year == 2018) %>% 
   #     filter(fuel_type != 'All fuel types', fuel_type != 'Gasoline') %>% 
   #     arrange(geo)
-  #   labels <- c('Canada', provinces, ev_data_plot$fuel_type)
-  #   parents <- c('', rep('Canada', length(provinces)), ev_data_plot$geo)
+  #   labels <- c('Canada', provinces, nmvr_data_plot$fuel_type)
+  #   parents <- c('', rep('Canada', length(provinces)), nmvr_data_plot$geo)
   #   values <- c(
-  #     ev_data_plot %>% pull(amount) %>% sum(),
-  #     ev_data_plot %>% group_by(geo) %>% summarise(total=sum(amount)) %>% pull(total),
-  #     ev_data_plot %>% pull(amount)
+  #     nmvr_data_plot %>% pull(amount) %>% sum(),
+  #     nmvr_data_plot %>% group_by(geo) %>% summarise(total=sum(amount)) %>% pull(total),
+  #     nmvr_data_plot %>% pull(amount)
   #   )
   #   plot_ly(labels = labels, parents = parents, values = values, type = 'sunburst')
   # })  

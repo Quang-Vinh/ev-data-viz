@@ -18,6 +18,7 @@ library(tidyverse)
 provinces_latlong <- read_csv('data/raw/provinces_latlong.csv') %>% 
   janitor::clean_names()
 
+# NMVR = ev_data
 ev_data <- read_csv('data/raw/ev_registrations.csv') %>% 
   janitor::clean_names() %>% 
   filter(str_detect(vehicle_type, '^Total')) %>% 

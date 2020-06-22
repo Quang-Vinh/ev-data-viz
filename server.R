@@ -1,10 +1,3 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Based off of https://github.com/eparker12/nCoV_tracker
-
-
 library(leaflet)
 library(plotly)
 library(RColorBrewer)
@@ -57,63 +50,6 @@ basemap <- leaflet() %>%
             title = '<small>Amount of vehicles</small>')
 
 
-ui <- bootstrapPage(
-  shinyjs::useShinyjs(),
-  
-  navbarPage(theme = shinytheme('flatly'), collapsible = TRUE, 'VRF Data Visualisation', id='nav',
-            
-    tabPanel('Map View',
-      div(class='outer', tags$head(includeCSS('styles.css')),
-        leafletOutput('mymap', width = '100%', height = '100%'),
-        absolutePanel(
-          id = 'controls', class = 'panel panel-default', top = 80, left = 20, width = 250, fixed = TRUE,
-          draggable = TRUE, height = 'auto',
-          
-          h3(textOutput('reactive_total_new_vehicles'), align = 'right'),
-          span(h4(textOutput('reactive_total_new_gv'), align = 'right'), style="color:#cc4c02"),
-          span(h4(textOutput('reactive_total_new_zev'), align = 'right'), style="color:#006d2c"),
-          
-          sliderInput(
-            'plot_date',
-            label = 'Year',
-            value = max_year,
-            min = min_year,
-            max = max_year,
-            step = 1,
-            sep = '',
-            animate = animationOptions(interval = 2000, loop = FALSE)
-          )
-        ) # absolute Panel
-      ) # div outer
-    ), # Tab panel
-    
-    tabPanel('Growth view',
-      sidebarLayout(
-        sidebarPanel(
-          selectInput(
-            'group_select', 'Group by',
-            choices = c('Province', 'Fuel type')),
-          selectInput(
-            'province_select', 'Province',
-            choices = provinces,
-            selected = 'Ontario'
-          ),
-          selectInput(
-            'fuel_type_select', 'Fuel type',
-            choices = fuel_types
-          ),
-          width = 2
-        ),
-        mainPanel(
-          plotlyOutput('time_series_plot'),
-          plotlyOutput('bar_chart_plot'),
-          plotlyOutput('sunburst_plot')
-        )
-      ) # sidebar layout
-    ) # tab panel
-  ) # navbar page
-)
-
 
 server <- function(input, output) {
   
@@ -153,7 +89,7 @@ server <- function(input, output) {
   # Update map circle markers when date changes
   observeEvent(input$plot_date, {
     leafletProxy('mymap') %>% 
-    clearMarkers()
+      clearMarkers()
     
     # Add circle markers for each group to the basemap
     for (fuel_typ in fuel_types) {
@@ -226,7 +162,7 @@ server <- function(input, output) {
         )
     }
   })
-
+  
   output$bar_chart_plot <- renderPlotly({
     if (input$group_select == 'Province') {
       ev_data_plot <- reactive_ev_data_fuel_type()
@@ -248,7 +184,7 @@ server <- function(input, output) {
     }
   })
   
-
+  
   # output$sunburst_plot <- renderPlotly({
   #   ev_data_plot <- ev_data %>%
   #     filter(year == 2018) %>% 
@@ -263,14 +199,5 @@ server <- function(input, output) {
   #   )
   #   plot_ly(labels = labels, parents = parents, values = values, type = 'sunburst')
   # })  
-
+  
 }
-
-
-# Run the application 
-shinyApp(ui = ui, server = server)
-
-
-
-
-

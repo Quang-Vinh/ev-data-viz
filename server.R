@@ -316,7 +316,8 @@ server <- function(input, output, session) {
   # Output plots
   output$nmvs_time_series_plot <- renderPlotly({
     reactive_nmvs_data_filtered() %>% 
-      plot_ly(x = ~year, y = ~value, color = ~geo, colors = my_colors, type = 'scatter', mode = 'lines+markers') %>% 
+      plot_ly(x = ~year, y = ~value, color = ~geo, colors = my_colors,
+              type = 'scatter', mode = 'lines+markers', height=600, width=1550) %>% 
       layout(
         xaxis = list(title = 'Year'),
         yaxis = list(title = input$nmvs_select_sale_type),

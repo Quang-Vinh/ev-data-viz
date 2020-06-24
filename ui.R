@@ -5,6 +5,9 @@
 # Based off of https://github.com/eparker12/nCoV_tracker
 
 
+# TODO: Rename some label IDs to specify NMVR
+
+
 library(leaflet)
 library(plotly)
 library(RColorBrewer)
@@ -19,7 +22,7 @@ ui <- bootstrapPage(
   
   navbarPage(theme = shinytheme('flatly'), collapsible = TRUE, 'VRF Data Visualisation', id='nav',
              
-             tabPanel('Map View',
+             tabPanel('NMVR Map View',
                       div(class='outer', tags$head(includeCSS('styles.css')),
                           leafletOutput('mymap', width = '100%', height = '100%'),
                           absolutePanel(
@@ -34,11 +37,11 @@ ui <- bootstrapPage(
                       ) # div outer
              ), # Tab panel
              
-             tabPanel('Growth view',
+             tabPanel('NMVR Time view',
                       sidebarLayout(
                         sidebarPanel(
                           selectInput(
-                            'group_select', 'Group by',
+                            'nmvr_group_select', 'Group by',
                             choices = c('Province', 'Fuel type')),
                           uiOutput('select_input_province'),
                           uiOutput('select_input_fuel_type'),
@@ -50,7 +53,21 @@ ui <- bootstrapPage(
                           plotlyOutput('sunburst_plot')
                         )
                       ) # sidebar layout
-             ) # tab panel
+             ), # tab panel
+             
+             tabPanel('NMVS Time View',
+                      sidebarLayout(
+                        sidebarPanel(
+                          uiOutput('nmvs_select_sale_type'),
+                          uiOutput('nmvs_select_vehicle_type'),
+                          uiOutput('nmvs_select_origin_manufacture'),
+                          width = 2
+                        ),
+                        mainPanel(
+                          plotlyOutput('nmvs_time_series_plot')
+                        )
+                      ) # side bar layout
+             ) #tab panel
              
   ) # navbar page
 ) # bootstrap page

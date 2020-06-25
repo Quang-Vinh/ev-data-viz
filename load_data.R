@@ -1,3 +1,4 @@
+library(cansim)
 library(tidyverse)
 
 
@@ -8,21 +9,16 @@ get_nmvr_data <- function() {
     janitor::clean_names()
   
   # Download data
-  file_path <- './data/raw/nmvr_data.zip'
-  url <- 'https://www150.statcan.gc.ca/n1/tbl/csv/20100021-eng.zip'
-  download.file(url, file_path)
-  nmvr_file <- unz(file_path, '20100021.csv')
-  
-  # Preprocess file and return dataframe
-  nmvr_data <- read_csv(nmvr_file) %>% 
+  nmvr_data <- get_cansim("20-10-0021-01", refresh=TRUE) %>% 
     janitor::clean_names() %>% 
     filter(str_detect(vehicle_type, '^Total')) %>% 
     filter(geo != 'Canada') %>% 
     select(year = ref_date, geo, fuel_type, amount = value) %>%
+    mutate(year = as.numeric(year)) %>% 
     replace_na(list(amount = 0)) %>% 
     mutate(geo = recode(geo, `British Columbia and the Territories` = 'British Columbia')) %>% # Fix later
-    left_join(provinces_latlong, by = c('geo' = 'province')) %>% 
-    group_by(geo, fuel_type) %>% 
+    left_join(provinces_latlong, by = c('geo' = 'province')) %>%  # Combine with provinces lat long information
+    group_by(geo, fuel_type) %>%  # Calculate cumulative sum per province and fuel type
     mutate(cumsum = cumsum(amount))
   
   return (nmvr_data)
@@ -32,19 +28,7 @@ get_nmvr_data <- function() {
 # Download nmvs data using STC API from https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2010000101
 get_nmvs_data <- function() {
   # Download data
-  file_path <- './data/raw/nmvs_data.zip'
-  url <- 'https://www150.statcan.gc.ca/n1/tbl/csv/20100001-eng.zip'
-  download.file(url, file_path)
-  nmvs_file <- unz(file_path, '20100001.csv')
-  
-  # Preprocess file and return dataframe
-  col_types = cols(
-    STATUS = col_character(),
-    SYMBOL = col_character(),
-    TERMINATED = col_character()
-  )
-  
-  nmvs_data <- read_csv(nmvs_file, col_types = col_types) %>% 
+  nmvs_data <- get_cansim("20-10-0001-01", refresh=TRUE) %>% 
     janitor::clean_names() %>% 
     filter(seasonal_adjustment == 'Unadjusted') %>% 
     replace_na(list(value = 0)) %>% 

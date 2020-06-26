@@ -1,3 +1,4 @@
+library(formatR)
 library(leaflet)
 library(plotly)
 library(RColorBrewer)
@@ -7,6 +8,10 @@ library(shinythemes)
 library(tidyverse)
 
 source('load_data.R')
+
+
+# TODO: Pass nmvr and nmvs data as parameters to rmd file. Downloading is fast enough for now
+
 
 
 # Set color ramp 
@@ -324,5 +329,36 @@ server <- function(input, output, session) {
         title = paste0('Number of new vehicle sales (', input$nmvs_select_sale_type, ')')
       )
   })
+  
+  
+  
+
+  # Generating Report -------------------------------------------------------
+  
+  output$btn_download_report <- downloadHandler(
+    # For PDF output, change this to "report.pdf"
+    filename = "report.html",
+    content = function(file) {
+      # Copy the report file to a temporary directory before processing it, in
+      # case we don't have write permissions to the current working dir (which
+      # can happen when deployed).
+      tempReport <- file.path(tempdir(), "report.Rmd")
+      file.copy("report.Rmd", tempReport, overwrite = TRUE)
+      
+      # Set up parameters to pass to Rmd document
+      params <- list(nmvr_data = nmvr_data, 
+                     nmvs_data = nmvs_data)
+      
+      # Knit the document, passing in the `params` list, and eval it in a
+      # child of the global environment (this isolates the code in the document
+      # from the code in this app).
+      rmarkdown::render(tempReport, output_file = file,
+                        params = params,
+                        envir = new.env(parent = globalenv())
+      )
+    }
+  )
+  
+  
   
 }

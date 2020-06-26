@@ -67,7 +67,11 @@ ui <- bootstrapPage(
                           plotlyOutput('nmvs_time_series_plot')
                         )
                       ) # side bar layout
-             ) #tab panel
+             ), #tab panel
+             
+             tabPanel('NMVS Report',
+                      downloadButton("btn_download_report", "Generate report"))
+             
              
   ) # navbar page
 ) # bootstrap page

@@ -69,7 +69,7 @@ ui <- bootstrapPage(
                       ) # side bar layout
              ), #tab panel
              
-             tabPanel('NMVS Report',
+             tabPanel('Report',
                       downloadButton("btn_download_report", "Generate report"))
              
              

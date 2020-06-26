@@ -19,14 +19,15 @@ get_nmvr_data <- function() {
     mutate(geo = recode(geo, `British Columbia and the Territories` = 'British Columbia')) %>% # Fix later
     left_join(provinces_latlong, by = c('geo' = 'province')) %>%  # Combine with provinces lat long information
     group_by(geo, fuel_type) %>%  # Calculate cumulative sum per province and fuel type
-    mutate(cumsum = cumsum(amount))
+    mutate(cumsum = cumsum(amount)) %>% 
+    ungroup()
   
   return (nmvr_data)
 }
 
 
 # Download nmvs data using STC API from https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2010000101
-get_nmvs_data <- function() {
+get_nmvs_data <- function(aggregate_yearly = TRUE) {
   # Download data
   nmvs_data <- get_cansim("20-10-0001-01", refresh=TRUE) %>% 
     janitor::clean_names() %>% 
@@ -34,9 +35,14 @@ get_nmvs_data <- function() {
     replace_na(list(value = 0)) %>% 
     mutate(value = ifelse(sales == 'Units', value, value*1000)) %>% # Convert dollars in 1000 to dollars in $1 unit
     dplyr::select(ref_date, geo, vehicle_type, origin_of_manufacture, sales, value) %>% 
-    separate(ref_date, c('year', 'month'), sep='-') %>% 
-    group_by(year, geo, vehicle_type, origin_of_manufacture, sales) %>% summarise(value = sum(value)) %>%  # Aggregate value by year 
-    ungroup()
+    separate(ref_date, c('year', 'month'), sep='-') 
+  
+    if (aggregate_yearly) {
+      nmvs_data <- nmvs_data %>% 
+        group_by(year, geo, vehicle_type, origin_of_manufacture, sales) %>%
+        summarise(value = sum(value)) %>%  # Aggregate value by year 
+        ungroup()
+    }
     
   return (nmvs_data)
 }

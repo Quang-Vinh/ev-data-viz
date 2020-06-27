@@ -346,8 +346,8 @@ server <- function(input, output, session) {
       file.copy("report.Rmd", tempReport, overwrite = TRUE)
       
       # Set up parameters to pass to Rmd document
-      params <- list(nmvr_data = nmvr_data, 
-                     nmvs_data = nmvs_data)
+      params <- list(nmvr_data = reactive_nmvr_data(), 
+                     nmvs_data = reactive_nmvs_data())
       
       # Knit the document, passing in the `params` list, and eval it in a
       # child of the global environment (this isolates the code in the document

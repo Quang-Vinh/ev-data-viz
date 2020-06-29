@@ -12,6 +12,7 @@ library(leaflet)
 library(plotly)
 library(RColorBrewer)
 library(shiny)
+library(shinycssloaders)
 library(shinyjs)
 library(shinythemes)
 library(tidyverse)
@@ -48,8 +49,8 @@ ui <- bootstrapPage(
                           width = 2
                         ),
                         mainPanel(
-                          plotlyOutput('time_series_plot'),
-                          plotlyOutput('bar_chart_plot'),
+                          plotlyOutput('time_series_plot') %>% withSpinner() ,
+                          plotlyOutput('bar_chart_plot') %>% withSpinner(),
                           plotlyOutput('sunburst_plot')
                         )
                       ) # sidebar layout
@@ -64,7 +65,7 @@ ui <- bootstrapPage(
                           width = 2
                         ),
                         mainPanel(
-                          plotlyOutput('nmvs_time_series_plot')
+                          plotlyOutput('nmvs_time_series_plot') %>% withSpinner()
                         )
                       ) # side bar layout
              ), #tab panel

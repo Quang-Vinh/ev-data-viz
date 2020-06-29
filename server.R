@@ -162,10 +162,12 @@ server <- function(input, output, session) {
   
   # UI Components
   output$select_input_province <- renderUI({
-    selectInput(
+    disabled(
+      selectInput(
       'province_select', 'Province',
       choices = provinces(),
       selected = 'Ontario'
+      )
     )
   })
   

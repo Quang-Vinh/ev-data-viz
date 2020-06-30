@@ -1,5 +1,5 @@
 # Electric Vehicle Data Visualization Application
-A simple data visualization application to help understand electric vehicle data in Canada.
+A simple data visualization application to help understand electric vehicle data in Canada. Check it out at https://shiny.covid.cloud.statcan.ca/ev-data-viz/ or https://qvinh.shinyapps.io/ev-data-viz for the latest updates.
 
 ## Datasets
 - **New motor vehicle registrations in Canada**

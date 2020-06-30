@@ -1,6 +1,7 @@
 library(formatR)
 library(leaflet)
 library(plotly)
+library(plyr)
 library(RColorBrewer)
 library(shiny)
 library(shinyjs)
@@ -10,16 +11,40 @@ library(tidyverse)
 source('load_data.R')
 
 
-# TODO: Pass nmvr and nmvs data as parameters to rmd file. Downloading is fast enough for now
-
-
-
 # Set color ramp 
 my_colors <- colorRampPalette(brewer.pal(8, 'Set2'))(15)
 
+# Translations. Inspired by https://github.com/chrislad/multilingualShinyApp
+dictionary_content <- read_csv('data/translation/dictionary.csv')
+translation <- dlply(dictionary_content ,.(key), function(s) key = as.list(s))
 
 
 server <- function(input, output, session) {
+  
+  
+  # Translation -------------------------------------------------------------
+  
+  vars <- reactiveValues(language = 'en')
+  
+  # Translate text given current language
+  tr <- function(text){ 
+    sapply(text,function(s) translation[[s]][[vars$language]], USE.NAMES=FALSE)
+  }
+  
+  # Change language
+  observeEvent(input$btn_language, {
+    if (vars$language == 'en') {
+      vars$language <- 'fr'
+    } else {
+      vars$language <- 'en'
+    }
+  })
+  
+  output$label_language <- renderText({
+    vars$language
+  })
+  
+  
 
   # Datasets. Updated daily ------------------------------------------------
   
@@ -37,6 +62,10 @@ server <- function(input, output, session) {
   
   
   # NMVR Map View ----------------------------------------------------------------
+  
+  output$nmvr_map_view <- renderText({
+    tr('nmvr_map')
+  })
 
   # Extract some properties from datasets
   fuel_types <- reactive({
@@ -87,16 +116,30 @@ server <- function(input, output, session) {
   
   
   output$reactive_total_new_vehicles <- renderText({
-    paste0(prettyNum(reactive_total_new_vehicles(), big.mark=','), ' new vehicles')
+    paste(prettyNum(reactive_total_new_vehicles(), big.mark=','), tr('new_vehicles'))
   })
   
   output$reactive_total_new_gv <- renderText({
-    paste0(prettyNum(reactive_total_new_gv(), big.mark=','), ' new gas vehicles')
+    paste(prettyNum(reactive_total_new_gv(), big.mark=','), tr('new_gas_vehicles'))
   })
   
   output$reactive_total_new_zev <- renderText({
-    paste0(prettyNum(reactive_total_new_zev(), big.mark=','), ' new electric vehicles')
+    paste(prettyNum(reactive_total_new_zev(), big.mark=','), tr('new_electric_vehicles'))
   })
+  
+  output$slider_input_plot_date <- renderUI({
+    sliderInput(
+      'plot_date',
+      label = tr('year'),
+      value = max_year(),
+      min = min_year(),
+      max = max_year(),
+      step = 1,
+      sep = '',
+      animate = animationOptions(interval = 2000, loop = FALSE)
+    )    
+  })
+  
   
   # Basemap
   output$mymap <- renderLeaflet({
@@ -109,27 +152,29 @@ server <- function(input, output, session) {
         ) %>% 
         hideGroup(fuel_types()[-1]) %>% 
         setView(-95, 55, zoom = 5) %>% 
-        addLegend('topright', pal = ev_pal(), values = c(0, max_value()),
-                  title = '<small>Amount of vehicles</small>')
+        addLegend('topright',
+                  pal = ev_pal(),
+                  values = c(0, max_value()),
+                  layerId = 'legend',
+                  title = paste0('<small>Amount of vehicles</small>'))
   })
   
-  output$slider_input_plot_date <- renderUI({
-    sliderInput(
-      'plot_date',
-      label = 'Year',
-      value = max_year(),
-      min = min_year(),
-      max = max_year(),
-      step = 1,
-      sep = '',
-      animate = animationOptions(interval = 2000, loop = FALSE)
-    )    
+  # Readd legend with language changes
+  observeEvent(input$btn_language, {
+    leafletProxy('mymap') %>% 
+      removeControl('legend') %>% 
+      addLegend('topright',
+                pal = ev_pal(),
+                values = c(0, max_value()),
+                layerId = 'legend',
+                title = paste0('<small>', tr('amount_of_vehicles'), '</small>'))
   })
+  
 
   # Update map circle markers when date changes
   observeEvent(input$plot_date, {
     leafletProxy('mymap') %>% 
-      clearMarkers()
+      clearMarkers() 
     
     # Add circle markers for each group to the basemap
     for (fuel_typ in fuel_types()) {
@@ -161,10 +206,23 @@ server <- function(input, output, session) {
   # NMVR Growth Tab --------------------------------------------------------------
   
   # UI Components
+  output$nmvr_time_view <- renderText({
+    tr('nmvr_time')
+  })
+  
+  output$select_group_by <- renderUI({
+    choices <- c('province' = 'Province', 'fuel_type' = 'Fuel type')
+    names(choices) <- c(tr('province'), tr('fuel_type'))
+    
+    selectInput(
+      'nmvr_group_select', tr('group_by'),
+      choices = choices)
+  })
+  
   output$select_input_province <- renderUI({
     disabled(
       selectInput(
-      'province_select', 'Province',
+      'province_select', tr('province'),
       choices = provinces(),
       selected = 'Ontario'
       )
@@ -173,7 +231,7 @@ server <- function(input, output, session) {
   
   output$select_input_fuel_type <- renderUI({
     selectInput(
-      'fuel_type_select', 'Fuel type',
+      'fuel_type_select', tr('fuel_type'),
       choices = fuel_types()
     )
   })
@@ -208,19 +266,20 @@ server <- function(input, output, session) {
       nmvr_data_plot %>% 
         plot_ly(x = ~year, y = ~cumsum, color = ~geo, colors = my_colors, type = 'scatter', mode = 'lines+markers') %>% 
         layout(
-          xaxis = list(title = 'Year'),
-          yaxis = list(title = 'Number of vehicles', range=c(0, 1.2 * max(nmvr_data_plot$cumsum))),
-          title = paste0('Total number of ', input$fuel_type_select, ' vehicles over time')
+          xaxis = list(title = tr('year')),
+          yaxis = list(title = tr('number_of_vehicles'), range=c(0, 1.2 * max(nmvr_data_plot$cumsum))),
+          title = paste0(tr('total_number_of_vehicles_by_province'), ' - ', input$fuel_type_select)
         )
     } 
+    
     else if (input$nmvr_group_select == 'Fuel type') {
       nmvr_data_plot <- reactive_nmvr_data_province()
       nmvr_data_plot %>% 
         plot_ly(x = ~year, y = ~cumsum, color = ~fuel_type, type = 'scatter', mode = 'lines+markers') %>% 
         layout(
-          xaxis = list(title = 'Year'),
-          yaxis = list(title = 'Number of vehicles', range=c(0, 1.2 * max(nmvr_data_plot$cumsum))),
-          title = paste0('Total number of vehicles in ', input$province_select,' over time')
+          xaxis = list(title = tr('year')),
+          yaxis = list(title = tr('number_of_vehicles'), range=c(0, 1.2 * max(nmvr_data_plot$cumsum))),
+          title = paste0(tr('total_number_of_vehicles_per_fuel_type'), ' - ', input$province_select)
         )
     }
   })
@@ -231,17 +290,20 @@ server <- function(input, output, session) {
       nmvr_data_plot %>% 
         plot_ly(x = ~year, y = ~amount, color = ~geo, colors = my_colors, type = 'bar') %>% 
         layout(
-          yaxis = list(title = 'Number of new vehicles'),
-          title = paste0('Number of new ', input$fuel_type_select, ' vehicles'),
+          xaxis = list(title = tr('year')),
+          yaxis = list(title = tr('number_of_new_vehicles')),
+          title = paste0(tr('total_number_of_new_vehicles_by_provinces'), ' - ', input$fuel_type_select),
           barmode = 'stack')
     }
+    
     else if (input$nmvr_group_select == 'Fuel type') {
       nmvr_data_plot <- reactive_nmvr_data_province() %>% filter(fuel_type != 'All fuel types')
       nmvr_data_plot %>% 
         plot_ly(x = ~year, y = ~amount, color = ~fuel_type, type = 'bar') %>% 
         layout(
-          yaxis = list(title = 'Number of new vehicles'),
-          title = paste0('Number of new vehicles per fuel type in ', input$province_select),
+          xaxis = list(title = tr('year')),
+          yaxis = list(title = tr('number_of_new_vehicles')),
+          title = paste0(tr('total_number_of_new_vehicles_per_fuel_type'), ' - ', input$province_select),
           barmode = 'stack')
     }
   })
@@ -282,10 +344,14 @@ server <- function(input, output, session) {
   
   
   # UI components
+  output$nmvs_time_view <- renderText({
+    tr('nmvs_time')
+  })
+  
   output$nmvs_select_sale_type <- renderUI({
     selectInput(
       inputId = 'nmvs_select_sale_type',
-      label = 'Sale type',
+      label = tr('sales_type'),
       choices = sale_types,
       selected = sale_types[1]
     )
@@ -294,7 +360,7 @@ server <- function(input, output, session) {
   output$nmvs_select_origin_manufacture <- renderUI({
     selectInput(
       inputId = 'nmvs_select_origin_manufacture',
-      label = 'Origin of manufacture',
+      label = tr('origins_of_manufacture'),
       choices = origins_manufacture(),
       selected = 'Total, country of manufacture'
     )
@@ -303,7 +369,7 @@ server <- function(input, output, session) {
   output$nmvs_select_vehicle_type <- renderUI({
     selectInput(
       inputId = 'nmvs_select_vehicle_type',
-      label = 'Vehicle Type',
+      label =  tr('vehicle_type'),
       choices = vehicle_types()
     )
   })
@@ -326,9 +392,9 @@ server <- function(input, output, session) {
       plot_ly(x = ~year, y = ~value, color = ~geo, colors = my_colors,
               type = 'scatter', mode = 'lines+markers', height=600, width=1550) %>% 
       layout(
-        xaxis = list(title = 'Year'),
+        xaxis = list(title = tr('year')),
         yaxis = list(title = input$nmvs_select_sale_type),
-        title = paste0('Number of new vehicle sales (', input$nmvs_select_sale_type, ')')
+        title = paste0(tr('number_of_new_vehicle_sales'), ' (', input$nmvs_select_sale_type, ')')
       )
   })
   
@@ -336,6 +402,18 @@ server <- function(input, output, session) {
   
 
   # Generating Report -------------------------------------------------------
+  
+  # UI components
+  
+  output$report <- renderText({
+    tr('report')
+  })
+  
+  output$generate_report <- renderText({
+    tr('generate_report')
+  })
+  
+  
   
   output$btn_download_report <- downloadHandler(
     # For PDF output, change this to "report.pdf"

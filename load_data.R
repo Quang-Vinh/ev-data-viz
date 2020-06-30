@@ -2,8 +2,13 @@ library(cansim)
 library(tidyverse)
 
 
-# Download nmvr data using STC API from https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2010002101
-get_nmvr_data <- function() {
+nmvs_path <- './data/processed/nmvs.csv'
+nmvr_path <- './data/processed/nmvr.csv'
+
+
+download_nmvr_data <- function() {
+  ## Download nmvr data using STC API from https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2010002101
+  
   # Province latitude and longitude data
   provinces_latlong <- read_csv('data/raw/provinces_latlong.csv') %>% 
     janitor::clean_names()
@@ -26,8 +31,9 @@ get_nmvr_data <- function() {
 }
 
 
-# Download nmvs data using STC API from https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2010000101
-get_nmvs_data <- function(aggregate_yearly = TRUE) {
+download_nmvs_data <- function(aggregate_yearly = TRUE) {
+  ## Download nmvs data using STC API from https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2010000101
+  
   # Download data
   nmvs_data <- get_cansim("20-10-0001-01", refresh=TRUE) %>% 
     janitor::clean_names() %>% 
@@ -46,4 +52,45 @@ get_nmvs_data <- function(aggregate_yearly = TRUE) {
     
   return (nmvs_data)
 }
+
+
+update_dataset <- function(dataset) {
+  ## Updates a given dataset if doesn't exist or is at least 24 hours old 
+  ## and stores it in the data/processed directory
+  
+  if (dataset == 'nmvs') {
+    data_path <- nmvs_path
+    download_data <- download_nmvs_data
+  }
+  else if (dataset == 'nmvr') {
+    data_path <- nmvr_path
+    download_data <- download_nmvr_data
+  }
+  
+  ctime <- file.info(data_path)$ctime
+  current_time <- Sys.time()
+  diff <- difftime(current_time, ctime) %>% as.numeric(units = 'hours')
+  
+  if (is.na(diff) | diff >= 24) {
+    data <- download_data()
+    readr::write_csv(data, data_path)
+  }
+}
+
+
+load_dataset <- function(dataset) {
+  ## Loads a given data set and upates it if necessary
+  
+  update_dataset(dataset)
+  
+  if (dataset == 'nmvs') {
+    data <- readr::read_csv(nmvs_path)
+  }
+  else if (dataset == 'nmvr') {
+    data <- readr::read_csv(nmvr_path)
+  }
+  
+  return (data)
+}
+
 

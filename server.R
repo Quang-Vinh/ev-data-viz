@@ -50,12 +50,14 @@ server <- function(input, output, session) {
   
   reactive_nmvr_data <- reactive({
     invalidateLater(8.64e7, session)
-    return (get_nmvr_data())
+    nmvr_data <- load_dataset('nmvr')
+    return(nmvr_data)
   })
   
   reactive_nmvs_data <- reactive({
     invalidateLater(8.64e7, session)
-    return (get_nmvs_data())
+    nmvs_data <- load_dataset('nmvs')
+    return (nmvs_data)
   })
   
   

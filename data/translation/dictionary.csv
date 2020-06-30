@@ -13,8 +13,8 @@ province,Province,Province
 fuel_type,Fuel Type,Type de carburant
 number_of_vehicles,Number of vehicles,Nombre de véhicules
 number_of_new_vehicles,Number of new vehicles,Nombre de véhicules neufs
-total_number_of_vehicles_per_fuel_type,Total number of vehicles per fuel type,Nombre total véhicules par type de carburant
-total_number_of_new_vehicles_per_fuel_type,Total number of new vehicles per fuel type,Nombre total véhicules neufs par type de carburant
+total_number_of_vehicles_per_fuel_type,Total number of vehicles per fuel type,Nombre total de véhicules par type de carburant
+total_number_of_new_vehicles_per_fuel_type,Total number of new vehicles per fuel type,Nombre total de véhicules neufs par type de carburant
 total_number_of_vehicles_by_province,Total number of vehicles by Province/Territory,Nombre total de véhicules par province/territoire
 total_number_of_new_vehicles_by_provinces,Total number of new vehicles by Province/Territory,Nombre total de véhicules neufs par province/territoire
 sales_type,Sales type,Type de vente

@@ -1,4 +1,4 @@
-﻿key,en,fr
+key,en,fr
 app_title,VRF Data Visualisation,VRF visualisation des donneés
 nmvr_map,NMVR Map,IVAN carte
 nmvr_time,NMVR Time Series,IVAN série temporelle
@@ -23,3 +23,4 @@ origins_of_manufacture,Origins of manufacture,Origine de fabrication
 number_of_new_vehicle_sales,Number of new vehicle sales,Nombre de ventes de véhicules neufs 
 report,Report,Rapport
 generate_report,Generate Report,Creer un rapport
+cma,Canadian metropolitan areas (synthetic data),Régions métropolitaines de recensement (données synthétiques)

@@ -81,7 +81,13 @@ ui <- bootstrapPage(
              
     tabPanel(
       textOutput('report'),
-      downloadButton("btn_download_report", textOutput('generate_report'))),
+      downloadButton("btn_download_report", textOutput('generate_report'))), #tab panel
+    
+    tabPanel(
+      textOutput('cma'),
+      div(class='outer', tags$head(includeCSS('styles.css')),
+        leafletOutput('cma_map', width = '100%', height = '100%'))
+      ),
 
     button = actionButton('btn_language', label = textOutput('label_language'))
     

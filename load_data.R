@@ -1,5 +1,7 @@
 library(cansim)
 library(tidyverse)
+# library(sf)
+library(rgdal)
 
 
 nmvs_path <- './data/processed/nmvs.csv'
@@ -92,5 +94,24 @@ load_dataset <- function(dataset) {
   
   return (data)
 }
+
+## map
+can_cma <- readOGR(dsn = "./lcma000b16a_e/lcma000b16a_e.shp") 
+can <- spTransform(can_cma, CRS("+proj=longlat +datum=WGS84"))
+can$y_2018 <- sample(100, size = nrow(can), replace = TRUE)
+
+labels <- 
+  can@data %>% 
+  mutate(label = paste0("<strong>", CMANAME, "</strong><br/><strong>Number of sales: ", 
+                        CMAUID, "</strong>")) %>% 
+  pull(label) %>% 
+  lapply(htmltools::HTML)
+
+bins_cma <- c(0, 10, 20, 50, 100, 200, 500, 1000, Inf)
+pal <- colorBin("YlOrRd", domain = can$y_2018, bins = bins_cma)
+
+
+
+
 
 

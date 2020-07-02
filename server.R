@@ -441,6 +441,30 @@ server <- function(input, output, session) {
     }
   )
   
+  # CMA map -------------------------------------------------------  
+  
+
+  
+  output$cma <- renderText({
+    tr('cma')})  
+  
+  output$cma_map <-renderLeaflet({
+    leaflet() %>%
+      addTiles() %>%
+      addPolygons(data = can,
+                  fillColor = ~pal(y_2018),
+                  weight = 2,
+                  col = 'blue',
+                  dashArray = "3",
+                  fillOpacity = 0.7,
+                  label = labels,
+                  highlight = highlightOptions(
+                    weight = 5,
+                    color = "#666",
+                    dashArray = "",
+                    fillOpacity = 0.7,
+                    bringToFront = TRUE))
+  })
   
   
 }

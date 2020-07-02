@@ -442,10 +442,13 @@ server <- function(input, output, session) {
 
   # Reactive values
   reactive_cma_data<- reactive({
+    # Small fix since slider value is not set until cma tab is clicked on causing some errors
+    year_select <- if(is.null(input$slider_cma_date)) cma_max_year else input$slider_cma_date
+    
     fake_cma %>%
-    mutate(cmapuid = as.character(cmapuid)) %>% 
-    filter(year == input$slider_cma_date) %>%
-    right_join(can_cma_shapes@data, by = c('cmapuid' = 'CMAPUID'))
+      mutate(cmapuid = as.character(cmapuid)) %>% 
+      filter(year == year_select) %>%
+      right_join(can_cma_shapes@data, by = c('cmapuid' = 'CMAPUID'))
   })
   
   reactive_cma_values <- reactive({
@@ -477,9 +480,20 @@ server <- function(input, output, session) {
         title = paste0('<small>Amount of vehicles</small>'))
   })
   
-  update_leaflet_cma_map <- function() {
-    # Update polygon shapes on leaflet cma map 
-    
+  # Update legend for selected language
+  observeEvent(input$btn_language, {
+    leafletProxy('leaflet_cma_map') %>% 
+      removeControl('legend') %>% 
+      addLegend(
+        'topright',
+        pal = pal_cma,
+        values = c(0, cma_max_value),
+        layerId = 'legend',
+        title = paste0('<small>', tr('yearly_sales'), '</small>'))
+  })
+  
+  # Update map for selected year and language
+  observeEvent(c(input$slider_cma_date, input$btn_language), {
     leafletProxy('leaflet_cma_map') %>%
       clearShapes() %>%
       addPolygons(
@@ -492,25 +506,6 @@ server <- function(input, output, session) {
           weight = 1,
           bringToFront = TRUE)
       )
-  }
-  
-  # Update labels for selected language
-  observeEvent(input$btn_language, {
-    leafletProxy('leaflet_cma_map') %>% 
-      removeControl('legend') %>% 
-      addLegend(
-        'topright',
-        pal = pal_cma,
-        values = c(0, cma_max_value),
-        layerId = 'legend',
-        title = paste0('<small>', tr('yearly_sales'), '</small>'))
-    
-    update_leaflet_cma_map()
-  })
-  
-  # Update map for selected year
-  observeEvent(input$slider_cma_date, {
-    update_leaflet_cma_map()
   })
   
   

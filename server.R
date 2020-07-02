@@ -499,11 +499,11 @@ server <- function(input, output, session) {
       addPolygons(
         data = can_cma_shapes,
         fillColor = ~pal_cma(reactive_cma_values()),
-        weight = 0,
+        weight = 2,
         fillOpacity = 0.7,
         label = reactive_cma_labels(),
         highlight = highlightOptions(
-          weight = 1,
+          fillColor = 'blue',
           bringToFront = TRUE)
       )
   })

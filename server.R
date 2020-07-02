@@ -4,7 +4,6 @@ library(plotly)
 library(plyr)
 library(RColorBrewer)
 library(rgdal)
-library(sf)
 library(shiny)
 library(shinyjs)
 library(shinythemes)
@@ -409,10 +408,9 @@ server <- function(input, output, session) {
   # CMA Level view ----------------------------------------------------------
   
   # Load data
+  can_cma_shapes <- get_can_cma_shapes()
   fake_cma <- read_csv('./data/raw/fake_cma.csv')
-  can_prov <- readOGR(dsn = "./data/raw/lcma000b16a_e/lcma000b16a_e.shp")
-  can_cma <- readOGR(dsn = "./data/raw/lcma000b16a_e/lcma000b16a_e.shp")
-  can <- spTransform(can_prov, CRS("+proj=longlat +datum=WGS84"))
+  
 
   cma_max_year <- fake_cma$year %>% max()
   cma_min_year <- fake_cma$year %>% min()
@@ -445,7 +443,7 @@ server <- function(input, output, session) {
     fake_cma %>%
     mutate(cmapuid = as.character(cmapuid)) %>% 
     filter(year == input$slider_cma_date) %>%
-    right_join(can@data, by = c('cmapuid' = 'CMAPUID'))
+    right_join(can_cma_shapes@data, by = c('cmapuid' = 'CMAPUID'))
   })
   
   reactive_cma_values <- reactive({
@@ -454,7 +452,7 @@ server <- function(input, output, session) {
   
   reactive_cma_labels <- reactive({
     reactive_cma_data() %>% 
-    mutate(label = paste0("<strong>", CMANAME, "</strong><br/><strong>Value: ", value, "</strong>")) %>%
+    mutate(label = paste0("<strong>", CMANAME, "</strong><br/><strong>Yearly sales: ", value, "</strong>")) %>%
     pull(label) %>%
     lapply(htmltools::HTML)
   })
@@ -467,13 +465,18 @@ server <- function(input, output, session) {
   
   # Basemap
   # TODO: highlight ui remains permanent
-  # TODO: use leaflet proxy
   output$leaflet_cma_map <- renderLeaflet({
     leaflet() %>%
       addTiles() %>%
-      setView(-95, 55, zoom = 5) %>% 
+      setView(-95, 55, zoom = 5)
+  })
+  
+  # Update map for selected year
+  observeEvent(input$slider_cma_date, {
+    leafletProxy('leaflet_cma_map') %>% 
+      clearShapes() %>% 
       addPolygons(
-        data = can,
+        data = can_cma_shapes,
         fillColor = ~pal_cma(reactive_cma_values()),
         weight = 0,
         fillOpacity = 0.7,
@@ -483,7 +486,8 @@ server <- function(input, output, session) {
           bringToFront = TRUE)
       )
   })
-
+  
+  
   
 
   # Generating Report -------------------------------------------------------

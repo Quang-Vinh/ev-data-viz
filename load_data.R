@@ -94,3 +94,15 @@ load_dataset <- function(dataset) {
 }
 
 
+get_can_cma_shapes <- function() {
+  # Loads and returns the cma shapes file
+  
+  can_cma_shapes <- 
+    readOGR(
+      dsn = "./data/processed/shapes/can_cma_shapes.shp", 
+      encoding='UTF-8',
+      use_iconv = TRUE)
+  
+  return (can_cma_shapes)
+}
+

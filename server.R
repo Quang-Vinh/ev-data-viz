@@ -3,12 +3,17 @@ library(leaflet)
 library(plotly)
 library(plyr)
 library(RColorBrewer)
+library(rgdal)
 library(shiny)
 library(shinyjs)
 library(shinythemes)
 library(tidyverse)
 
 source('load_data.R')
+
+
+# TODO: Add report by province
+# TODO: Add french translation for rest of app
 
 
 # Set color ramp 
@@ -19,29 +24,31 @@ dictionary_content <- read_csv('data/translation/dictionary.csv')
 translation <- dlply(dictionary_content ,.(key), function(s) key = as.list(s))
 
 
+
 server <- function(input, output, session) {
-  
+    
+  reactive_vars <- reactiveValues()
   
   # Translation -------------------------------------------------------------
   
-  vars <- reactiveValues(language = 'en')
+  reactive_vars$language <- 'en'
   
   # Translate text given current language
   tr <- function(text){ 
-    sapply(text,function(s) translation[[s]][[vars$language]], USE.NAMES=FALSE)
+    sapply(text,function(s) translation[[s]][[reactive_vars$language]], USE.NAMES=FALSE)
   }
   
   # Change language
   observeEvent(input$btn_language, {
-    if (vars$language == 'en') {
-      vars$language <- 'fr'
+    if (reactive_vars$language == 'en') {
+      reactive_vars$language <- 'fr'
     } else {
-      vars$language <- 'en'
+      reactive_vars$language <- 'en'
     }
   })
   
   output$label_language <- renderText({
-    vars$language
+    reactive_vars$language
   })
   
   
@@ -199,9 +206,6 @@ server <- function(input, output, session) {
             textsize = "15px", direction = "auto"))
     }
   })
-  
-  
-  
   
   
   
@@ -402,11 +406,114 @@ server <- function(input, output, session) {
   
   
   
+  
+  # CMA Level view ----------------------------------------------------------
+  
+  # Load data
+  can_cma_shapes <- get_can_cma_shapes()
+  fake_cma <- read_csv('./data/raw/fake_cma.csv')
+
+  cma_max_year <- fake_cma$year %>% max()
+  cma_min_year <- fake_cma$year %>% min()
+  cma_max_value <- fake_cma$value %>% max()
+  
+
+  # UI components
+  output$text_fake_data_message <- renderText({
+    tr('fake_data_message')
+  })
+  
+  output$text_cma_map <- renderText({
+    tr('cma_map')
+  })
+  
+  output$slider_cma_date <- renderUI({
+    sliderInput(
+      'slider_cma_date',
+      label = tr('year'),
+      value = cma_max_year,
+      min = cma_min_year,
+      max = cma_max_year,
+      step = 1,
+      sep = '',
+      animate = animationOptions(interval = 2000, loop = FALSE)
+    )
+  })
+
+  # Reactive values
+  reactive_cma_data<- reactive({
+    # Small fix since slider value is not set until cma tab is clicked on causing some errors
+    year_select <- if(is.null(input$slider_cma_date)) cma_max_year else input$slider_cma_date
+    
+    fake_cma %>%
+      mutate(cmapuid = as.character(cmapuid)) %>% 
+      filter(year == year_select) %>%
+      right_join(can_cma_shapes@data, by = c('cmapuid' = 'CMAPUID'))
+  })
+  
+  reactive_cma_values <- reactive({
+    reactive_cma_data() %>% pull(value)
+  })
+  
+  reactive_cma_labels <- reactive({
+    reactive_cma_data() %>% 
+    mutate(label = paste0("<strong>", CMANAME, "</strong><br/><strong>", tr('yearly_sales'), ": ", value, "</strong>")) %>%
+    pull(label) %>%
+    lapply(htmltools::HTML)
+  })
+  
+  
+  bins_cma <- c(0, 10, 20, 50, 100, 200, 500, 1000, Inf)
+  pal_cma <- colorBin("YlOrRd", domain = c(0, max(fake_cma$value)), bins = bins_cma)
+  
+  # Basemap
+  # TODO: highlight ui remains permanent
+  output$leaflet_cma_map <- renderLeaflet({
+    leaflet() %>%
+      addTiles() %>%
+      setView(-95, 55, zoom = 5) %>% 
+      addLegend(
+        'topright',
+        pal = pal_cma,
+        values = c(0, cma_max_value),
+        layerId = 'legend',
+        title = paste0('<small>Amount of vehicles</small>'))
+  })
+  
+  # Update legend for selected language
+  observeEvent(input$btn_language, {
+    leafletProxy('leaflet_cma_map') %>% 
+      removeControl('legend') %>% 
+      addLegend(
+        'topright',
+        pal = pal_cma,
+        values = c(0, cma_max_value),
+        layerId = 'legend',
+        title = paste0('<small>', tr('yearly_sales'), '</small>'))
+  })
+  
+  # Update map for selected year and language
+  observeEvent(c(input$slider_cma_date, input$btn_language), {
+    leafletProxy('leaflet_cma_map') %>%
+      clearShapes() %>%
+      addPolygons(
+        data = can_cma_shapes,
+        fillColor = ~pal_cma(reactive_cma_values()),
+        weight = 2,
+        fillOpacity = 0.7,
+        label = reactive_cma_labels(),
+        highlight = highlightOptions(
+          fillColor = 'blue',
+          bringToFront = TRUE)
+      )
+  })
+  
+  
+  
 
   # Generating Report -------------------------------------------------------
   
   # UI components
-  
   output$report <- renderText({
     tr('report')
   })
@@ -414,7 +521,6 @@ server <- function(input, output, session) {
   output$generate_report <- renderText({
     tr('generate_report')
   })
-  
   
   
   output$btn_download_report <- downloadHandler(
@@ -440,31 +546,6 @@ server <- function(input, output, session) {
       )
     }
   )
-  
-  # CMA map -------------------------------------------------------  
-  
-
-  
-  output$cma <- renderText({
-    tr('cma')})  
-  
-  output$cma_map <-renderLeaflet({
-    leaflet() %>%
-      addTiles() %>%
-      addPolygons(data = can,
-                  fillColor = ~pal(y_2018),
-                  weight = 2,
-                  col = 'blue',
-                  dashArray = "3",
-                  fillOpacity = 0.7,
-                  label = labels,
-                  highlight = highlightOptions(
-                    weight = 5,
-                    color = "#666",
-                    dashArray = "",
-                    fillOpacity = 0.7,
-                    bringToFront = TRUE))
-  })
   
   
 }

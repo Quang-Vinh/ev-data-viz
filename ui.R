@@ -5,7 +5,7 @@
 # Based off of https://github.com/eparker12/nCoV_tracker
 
 
-# TODO: Rename some label IDs to specify NMVR
+# TODO: Rename some label IDs for consistency
 
 
 library(leaflet)
@@ -78,16 +78,24 @@ ui <- bootstrapPage(
         )
       ) # side bar layout
     ), #tab panel
+    
+    tabPanel(
+      textOutput('text_cma_map'),
+      div(class='outer', tags$head(includeCSS('styles.css')),
+         leafletOutput('leaflet_cma_map', width = '100%', height = '100%'),
+         absolutePanel(
+           id = 'controls', class = 'panel panel-default', top =200, left = 20, width = 250, fixed = TRUE,
+           draggable = TRUE, height = 'auto',
+
+           h3(textOutput('text_fake_data_message')),
+           uiOutput('slider_cma_date')
+         ) # absolute Panel
+      ) # div outer
+    ), #tab panel
              
     tabPanel(
       textOutput('report'),
-      downloadButton("btn_download_report", textOutput('generate_report'))), #tab panel
-    
-    tabPanel(
-      textOutput('cma'),
-      div(class='outer', tags$head(includeCSS('styles.css')),
-        leafletOutput('cma_map', width = '100%', height = '100%'))
-      ),
+      downloadButton("btn_download_report", textOutput('generate_report'))),
 
     button = actionButton('btn_language', label = textOutput('label_language'))
     

@@ -10,6 +10,7 @@ output:
 params:
   nmvs_data: NA
   nmvr_data: NA
+  province: NA
 ---
 
 ```{r setup, echo=FALSE, include=FALSE, warning=FALSE, message=FALSE}
@@ -30,6 +31,7 @@ skimr::skim_with(numeric = list(hist = NULL))
 # Load the data
 nmvs_data <- params$nmvs_data
 nmvr_data <- params$nmvr_data
+province <- params$province
 ```
 
 
@@ -114,6 +116,29 @@ nmvr_data %>%
     x = 'Year',
     y = 'Vehicle sales',
     title = 'Yearly EV Registrations by Type',
+    color = 'Fuel Type'
+  ) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = n_years)) +
+  theme_hc()
+```
+
+
+```{r}
+nmvr_data %>% 
+  dplyr::filter(geo == province) %>% 
+  dplyr::filter(fuel_type %in% c('Battery electric', 'Plug-in hybrid electric')) %>%
+  dplyr::group_by(year, fuel_type) %>%
+  dplyr::summarise(amount = sum(amount)) %>%
+  ungroup() %>%
+
+  ggplot(aes(x=year, y=amount, color=fuel_type, label=amount)) +
+  geom_line() +
+  geom_point() +
+  geom_text_repel() +
+  labs(
+    x = 'Year',
+    y = 'Vehicle sales',
+    title = paste0('Yearly EV Registrations by Type in ', province),
     color = 'Fuel Type'
   ) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = n_years)) +

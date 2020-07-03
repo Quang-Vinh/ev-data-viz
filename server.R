@@ -235,7 +235,7 @@ server <- function(input, output, session) {
       selectInput(
       'province_select', tr('province'),
       choices = provinces(),
-      selected = 'Ontario'
+      selected = provinces()[1]
       )
     )
   })
@@ -530,6 +530,15 @@ server <- function(input, output, session) {
     tr('generate_report')
   })
   
+  output$select_report_province <- renderUI({
+    selectInput(
+      inputId = 'select_report_province',
+      label = tr('province'),
+      choices = provinces(),
+      selected = provinces()[1]
+    )
+  })
+  
   
   output$btn_download_report <- downloadHandler(
     # For PDF output, change this to "report.pdf"
@@ -543,7 +552,8 @@ server <- function(input, output, session) {
       
       # Set up parameters to pass to Rmd document
       params <- list(nmvr_data = reactive_nmvr_data(), 
-                     nmvs_data = reactive_nmvs_data())
+                     nmvs_data = reactive_nmvs_data(),
+                     province = input$select_report_province)
       
       # Knit the document, passing in the `params` list, and eval it in a
       # child of the global environment (this isolates the code in the document

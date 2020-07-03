@@ -94,8 +94,15 @@ ui <- bootstrapPage(
     ), #tab panel
              
     tabPanel(
-      textOutput('report'),
-      downloadButton("btn_download_report", textOutput('generate_report'))),
+      title = textOutput('report'),
+      sidebarLayout(
+        sidebarPanel(
+          uiOutput('select_report_province'),
+          downloadButton("btn_download_report", textOutput('generate_report'))
+        ),
+        mainPanel()
+      ) # side bar layout
+    ), # tab panel
 
     button = actionButton('btn_language', label = textOutput('label_language'))
     

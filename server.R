@@ -108,15 +108,18 @@ server <- function(input, output, session) {
     
   
   reactive_nmvr_data_year <- reactive({
-    reactive_nmvr_data() %>% filter(year == input$plot_date)
+    reactive_nmvr_data() %>% 
+      dplyr::filter(year == input$plot_date)
   })
    
   reactive_total_new_vehicles <- reactive({
-    reactive_nmvr_data_year() %>% filter(fuel_type == 'All fuel types') %>% pull(amount) %>% sum()
+    reactive_nmvr_data_year() %>% 
+      dplyr::filter(fuel_type == 'All fuel types') %>% pull(amount) %>% sum()
   })
   
   reactive_total_new_zev <- reactive({
-    reactive_nmvr_data_year() %>% filter(fuel_type %in% ev_fuel_types) %>% pull(amount) %>% sum()
+    reactive_nmvr_data_year() %>% 
+      dplyr::filter(fuel_type %in% ev_fuel_types) %>% pull(amount) %>% sum()
   })
   
   reactive_total_new_gv <- reactive({
@@ -187,7 +190,9 @@ server <- function(input, output, session) {
     
     # Add circle markers for each group to the basemap
     for (fuel_typ in fuel_types()) {
-      nmvr_data_filtered <- reactive_nmvr_data_year() %>% filter(fuel_type == fuel_typ)
+      nmvr_data_filtered <- 
+        reactive_nmvr_data_year() %>% 
+        dplyr::filter(fuel_type == fuel_typ)
       amount <- nmvr_data_filtered$amount
       
       leafletProxy('mymap') %>% 
@@ -244,11 +249,13 @@ server <- function(input, output, session) {
   
   
   reactive_nmvr_data_fuel_type <- reactive({
-    reactive_nmvr_data() %>% filter(fuel_type == input$fuel_type_select)
+    reactive_nmvr_data() %>% 
+      dplyr::filter(fuel_type == input$fuel_type_select)
   })
   
   reactive_nmvr_data_province <- reactive({
-    reactive_nmvr_data() %>% filter(geo == input$province_select)
+    reactive_nmvr_data() %>% 
+      dplyr::filter(geo == input$province_select)
   })
   
   
@@ -271,7 +278,7 @@ server <- function(input, output, session) {
       nmvr_data_plot <- reactive_nmvr_data_fuel_type()
       nmvr_data_plot %>% 
         plot_ly(x = ~year, y = ~cumsum, color = ~geo, colors = my_colors, type = 'scatter', mode = 'lines+markers') %>% 
-        layout(
+        plotly::layout(
           xaxis = list(title = tr('year')),
           yaxis = list(title = tr('number_of_vehicles'), range=c(0, 1.2 * max(nmvr_data_plot$cumsum))),
           title = paste0(tr('total_number_of_vehicles_by_province'), ' - ', input$fuel_type_select)
@@ -282,7 +289,7 @@ server <- function(input, output, session) {
       nmvr_data_plot <- reactive_nmvr_data_province()
       nmvr_data_plot %>% 
         plot_ly(x = ~year, y = ~cumsum, color = ~fuel_type, type = 'scatter', mode = 'lines+markers') %>% 
-        layout(
+        plotly::layout(
           xaxis = list(title = tr('year')),
           yaxis = list(title = tr('number_of_vehicles'), range=c(0, 1.2 * max(nmvr_data_plot$cumsum))),
           title = paste0(tr('total_number_of_vehicles_per_fuel_type'), ' - ', input$province_select)
@@ -295,7 +302,7 @@ server <- function(input, output, session) {
       nmvr_data_plot <- reactive_nmvr_data_fuel_type()
       nmvr_data_plot %>% 
         plot_ly(x = ~year, y = ~amount, color = ~geo, colors = my_colors, type = 'bar') %>% 
-        layout(
+        plotly::layout(
           xaxis = list(title = tr('year')),
           yaxis = list(title = tr('number_of_new_vehicles')),
           title = paste0(tr('total_number_of_new_vehicles_by_provinces'), ' - ', input$fuel_type_select),
@@ -303,10 +310,11 @@ server <- function(input, output, session) {
     }
     
     else if (input$nmvr_group_select == 'Fuel type') {
-      nmvr_data_plot <- reactive_nmvr_data_province() %>% filter(fuel_type != 'All fuel types')
+      nmvr_data_plot <- reactive_nmvr_data_province() %>% 
+        dplyr::filter(fuel_type != 'All fuel types')
       nmvr_data_plot %>% 
         plot_ly(x = ~year, y = ~amount, color = ~fuel_type, type = 'bar') %>% 
-        layout(
+        plotly::layout(
           xaxis = list(title = tr('year')),
           yaxis = list(title = tr('number_of_new_vehicles')),
           title = paste0(tr('total_number_of_new_vehicles_per_fuel_type'), ' - ', input$province_select),
@@ -384,7 +392,7 @@ server <- function(input, output, session) {
   # Filtered data based on select inputs
   reactive_nmvs_data_filtered <- reactive({
     reactive_nmvs_data() %>% 
-      filter(
+      dplyr::filter(
         sales == input$nmvs_select_sale_type,
         origin_of_manufacture == input$nmvs_select_origin_manufacture,
         vehicle_type == input$nmvs_select_vehicle_type
@@ -397,7 +405,7 @@ server <- function(input, output, session) {
     reactive_nmvs_data_filtered() %>% 
       plot_ly(x = ~year, y = ~value, color = ~geo, colors = my_colors,
               type = 'scatter', mode = 'lines+markers', height=600, width=1550) %>% 
-      layout(
+      plotly::layout(
         xaxis = list(title = tr('year')),
         yaxis = list(title = input$nmvs_select_sale_type),
         title = paste0(tr('number_of_new_vehicle_sales'), ' (', input$nmvs_select_sale_type, ')')
@@ -446,8 +454,8 @@ server <- function(input, output, session) {
     year_select <- if(is.null(input$slider_cma_date)) cma_max_year else input$slider_cma_date
     
     fake_cma %>%
-      mutate(cmapuid = as.character(cmapuid)) %>% 
-      filter(year == year_select) %>%
+      dplyr::mutate(cmapuid = as.character(cmapuid)) %>% 
+      dplyr::filter(year == year_select) %>%
       right_join(can_cma_shapes@data, by = c('cmapuid' = 'CMAPUID'))
   })
   
@@ -457,7 +465,7 @@ server <- function(input, output, session) {
   
   reactive_cma_labels <- reactive({
     reactive_cma_data() %>% 
-    mutate(label = paste0("<strong>", CMANAME, "</strong><br/><strong>", tr('yearly_sales'), ": ", value, "</strong>")) %>%
+    dplyr::mutate(label = paste0("<strong>", CMANAME, "</strong><br/><strong>", tr('yearly_sales'), ": ", value, "</strong>")) %>%
     pull(label) %>%
     lapply(htmltools::HTML)
   })

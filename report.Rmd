@@ -50,18 +50,18 @@ ev_fuel_types <- c('Battery electric', 'Plug-in hybrid electric')
 
 ev_nmvr_data <-
   nmvr_data %>%
-  filter(fuel_type %in% ev_fuel_types)
+  dplyr::filter(fuel_type %in% ev_fuel_types)
 
 # Pie chart
 ev_plot_data <- ev_nmvr_data %>%
-  filter(year == max_year) %>%
+  dplyr::filter(year == max_year) %>%
   dplyr::mutate(geo = ifelse(geo %in% other_provinces, 'Other provinces', geo)) %>%
   group_by(geo) %>%
   dplyr::summarise(amount = sum(amount)) %>%
   ungroup()
 
 ev_plot_data %>%
-  arrange(desc(geo)) %>%
+  dplyr::arrange(desc(geo)) %>%
   dplyr::mutate(prop = amount / sum(ev_plot_data$amount) * 100) %>%
   dplyr::mutate(prop = round(prop, 2)) %>%
   dplyr::mutate(ypos = cumsum(prop) - 0.5*prop) %>%
@@ -80,7 +80,7 @@ ev_plot_data %>%
 
 # Table
 ev_nmvr_data %>%
-  arrange(year, geo) %>%
+  dplyr::arrange(year, geo) %>%
   dplyr::group_by(year, geo) %>%
   dplyr::summarise(amount = sum(amount)) %>%
   dplyr::ungroup() %>%
@@ -101,7 +101,7 @@ ev_nmvr_data %>%
 n_years <- nmvr_data$year %>% unique() %>% length()
 
 nmvr_data %>%
-  filter(fuel_type %in% c('Battery electric', 'Plug-in hybrid electric')) %>%
+  dplyr::filter(fuel_type %in% c('Battery electric', 'Plug-in hybrid electric')) %>%
   dplyr::group_by(year, fuel_type) %>%
   dplyr::summarise(amount = sum(amount)) %>%
   ungroup() %>%

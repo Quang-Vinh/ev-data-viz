@@ -20,9 +20,9 @@ source('load_data.R')
 my_colors <- colorRampPalette(brewer.pal(8, 'Set2'))(15)
 
 # Translations. Inspired by https://github.com/chrislad/multilingualShinyApp
-dictionary_content <- read_csv('data/translation/dictionary.csv')
+dictionary_content <- read_csv('./data/translation/dictionary.csv')
 translation <- dlply(dictionary_content ,.(key), function(s) key = as.list(s))
-
+dictionary_variables <- read_csv('./data/processed/dictionary_variables.csv')
 
 
 server <- function(input, output, session) {
@@ -67,6 +67,34 @@ server <- function(input, output, session) {
     return (nmvs_data)
   })
   
+  
+  # # Update language of variables in dataset
+  # reactive_nmvr_data <- reactive({
+  #   nmvr_data <- reactive_nmvr_data_load()
+  #   
+  #   if (is.null(nmvr_data)) {return (nmvr_data)}
+  #   
+  #   fuel_types_tr <- dictionary_variables %>% filter(variable == 'fuel_type')
+  #   geo_tr <- dictionary_variables %>% filter(variable == 'geo')
+  #    
+  #   if (reactive_vars$language == 'en') {
+  #     nmvr_data <- nmvr_data %>%
+  #       mutate(
+  #         geo = mapvalues(geo, geo_tr$fr, geo_tr$en, warn_missing = FALSE),
+  #         fuel_type = mapvalues(fuel_type, fuel_types_tr$fr, fuel_types_tr$en, warn_missing = FALSE)
+  #       )
+  #   }
+  # 
+  #   else if (reactive_vars$language == 'fr') {
+  #     nmvr_data <- nmvr_data %>%
+  #       mutate(
+  #         geo = mapvalues(geo, geo_tr$en, geo_tr$fr, warn_missing = FALSE),
+  #         fuel_type = mapvalues(fuel_type, fuel_types_tr$en, fuel_types_tr$fr, warn_missing = FALSE)
+  #       )
+  #   }
+  #   
+  #   return (nmvr_data)
+  # })
   
   
   

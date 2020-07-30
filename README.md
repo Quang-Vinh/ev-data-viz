@@ -11,7 +11,7 @@ A simple data visualization application to help understand electric vehicle data
 
 - [x] Create a ui.R and server.R
 - [x] Vinh: send a pull request to the data analytics repository
-- [ ] Spencer: spush the PowerBI app to the data analytics platform
+- [x] Spencer: push the PowerBI app to the data analytics platform
 - [ ] Manolo (TBD): Add a button that creates an Rmarkdown or pdf report
 - [x] (TBD) Build a pipeline that streams datasets directly from STC by automating the monthly updates of the nmvr and nmvs tables
 - [x] (TBD) Add and visualize table 20-10-0001-01
